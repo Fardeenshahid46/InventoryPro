@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block unauth_content %}
+<div class="card" style="box-shadow: var(--shadow-lg); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
+  <div class="card-header" style="text-align: center; display: block; padding: 2rem 1.5rem 1rem;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; background-color: var(--color-primary-light); color: var(--color-primary); border-radius: var(--radius-md); margin-bottom: 0.75rem;">
+      <svg style="width: 32px; height: 32px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+    </div>
+    <h2 style="font-size: 1.5rem; font-weight: 700;">InventoryPro</h2>
+    <p style="font-size: 0.88rem; color: var(--color-text-muted); margin-top: 0.25rem;">Sign in to your management workspace</p>
+  </div>
+
+  <div class="card-body" style="padding: 1.5rem 2rem 2rem;">
+    <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.username.id }}">{{ form.username.label.text }}</label>
+        {{ form.username(class="form-control", placeholder="Username or email address", autofocus=True) }}
+        {% for error in form.username.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.password.id }}">{{ form.password.label.text }}</label>
+        {{ form.password(class="form-control", placeholder="••••••••") }}
+        {% for error in form.password.errors %}
+          <div class="form-error">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; font-size: 0.85rem;">
+        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--color-text-muted);">
+          {{ form.remember() }} Remember me
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+        Sign In to Account
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block actions %}
+  <a href="{{ url_for('inventory.stock_in') }}" class="btn btn-primary btn-sm">
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Receive Stock
+  </a>
+  <a href="{{ url_for('inventory.stock_out') }}" class="btn btn-secondary btn-sm">
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Issue Stock
+  </a>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Metric Cards -->
+<div class="kpi-grid">
+  <!-- Total Products -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper" style="background-color: var(--color-primary-light); color: var(--color-primary);">
+      <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      </svg>
+    </div>
+    <div>
+      <div class="kpi-value">{{ summary.total_products }}</div>
+      <div class="kpi-label">Active SKUs</div>
+    </div>
+  </div>
+
+  <!-- Total Valuation (Cost) -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper" style="background-color: var(--color-success-light); color: var(--color-success);">
+      <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="1" x2="12" y2="23"></line>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
+    </div>
+    <div>
+      <div class="kpi-value">{{ summary.total_valuation_cost|currency(summary.currency) }}</div>
+      <div class="kpi-label">Valuation (At Cost)</div>
+    </div>
+  </div>
+
+  <!-- Low Stock Warning -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper" style="background-color: var(--color-warning-light); color: var(--color-warning);">
+      <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    </div>
+    <div>
+      <div class="kpi-value">{{ summary.low_stock_count }}</div>
+      <div class="kpi-label">
+        <a href="{{ url_for('inventory.alerts') }}" style="color: inherit; text-decoration: underline;">Low Stock Alerts</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Operations -->
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper" style="background-color: #f1f5f9; color: var(--color-secondary);">
+      <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+      </svg>
+    </div>
+    <div>
+      <div class="kpi-value">{{ summary.today_transactions }}</div>
+      <div class="kpi-label">Today's Transactions</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: var(--space-xl); margin-bottom: var(--space-xl);">
+  <!-- 7-Day Movements Activity -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h2 class="card-title">Movement Activity (Last 7 Days)</h2>
+    </div>
+    <div class="card-body" style="height: 280px; display: flex; align-items: center; justify-content: center;">
+      <canvas id="movementChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Stock By Category -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h2 class="card-title">Stock Volume by Category</h2>
+    </div>
+    <div class="card-body" style="height: 280px; display: flex; align-items: center; justify-content: center;">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Lower Grids: Recent Transactions & Critical Alerts -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--space-xl);">
+  <!-- Recent Transactions -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Recent Transactions</h2>
+      <a href="{{ url_for('inventory.history') }}" class="btn btn-sm btn-secondary">View All</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Reference</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for txn in summary.recent_transactions %}
+            <tr>
+              <td><code>{{ txn.transaction_code }}</code></td>
+              <td>
+                {% if txn.transaction_type == 'STOCK_IN' %}
+                  <span class="badge badge-success">Stock In</span>
+                {% elif txn.transaction_type == 'STOCK_OUT' %}
+                  <span class="badge badge-danger">Stock Out</span>
+                {% else %}
+                  <span class="badge badge-warning">Adjustment</span>
+                {% endif %}
+              </td>
+              <td>{{ txn.reference_no or '—' }}</td>
+              <td>{{ txn.created_at|datetime }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No recent transactions recorded yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Critical Low Stock Warning Feed -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Critical Low Stock</h2>
+      <a href="{{ url_for('inventory.alerts') }}" class="btn btn-sm btn-secondary">Full Alert List</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Product</th>
+            <th>On Hand</th>
+            <th>Reorder At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in summary.critical_low_stock %}
+            <tr>
+              <td><code>{{ p.sku }}</code></td>
+              <td><strong>{{ p.name }}</strong></td>
+              <td>
+                <span class="badge {% if p.current_stock == 0 %}badge-danger{% else %}badge-warning{% endif %}">
+                  {{ p.current_stock }} {{ p.unit_of_measure }}
+                </span>
+              </td>
+              <td>{{ p.reorder_level }} {{ p.unit_of_measure }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--color-success); padding: 2rem;">
+                All items are sufficiently stocked!
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // 1. Movement Activity Chart
+  const ctxMovement = document.getElementById("movementChart").getContext("2d");
+  new Chart(ctxMovement, {
+    type: "bar",
+    data: {
+      labels: ["Receipts (Stock In)", "Issues (Stock Out)"],
+      datasets: [{
+        label: "Events (Last 7 Days)",
+        data: [{{ summary.in_movements_7d }}, {{ summary.out_movements_7d }}],
+        backgroundColor: ["#10b981", "#ef4444"],
+        borderRadius: 6,
+        maxBarThickness: 50,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+      },
+    },
+  });
+
+  // 2. Fetch Category Distribution for Doughnut Chart
+  fetch("/api/dashboard/chart-data")
+    .then((r) => r.json())
+    .then((data) => {
+      const ctxCategory = document.getElementById("categoryChart").getContext("2d");
+      const defaultLabels = data.labels.length > 0 ? data.labels : ["No categories"];
+      const defaultCounts = data.counts.length > 0 ? data.counts : [0];
+
+      new Chart(ctxCategory, {
+        type: "doughnut",
+        data: {
+          labels: defaultLabels,
+          datasets: [{
+            data: defaultCounts,
+            backgroundColor: [
+              "#2563eb", "#10b981", "#f59e0b", "#8b5cf6",
+              "#ec4899", "#06b6d4", "#64748b"
+            ],
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "right" },
+          },
+        },
+      });
+    })
+    .catch((err) => console.error("Chart load error:", err));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Out (Issue Goods){% endblock %}
+{% block page_title %}Stock Out (Issue Inventory){% endblock %}
+
+{% block actions %}
+  <a href="{{ url_for('inventory.history') }}" class="btn btn-secondary btn-sm">Movement History</a>
+{% endblock %}
+
+{% block content %}
+<form method="POST" id="stockOutForm">
+  {{ form.hidden_tag() }}
+
+  <!-- Transaction Header -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Issue Details</h2>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.reason.id }}">{{ form.reason.label.text }} *</label>
+          {{ form.reason(class="form-control") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.reference_no.id }}">{{ form.reference_no.label.text }}</label>
+          {{ form.reference_no(class="form-control", placeholder="e.g. INV-2026-108") }}
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="{{ form.notes.id }}">{{ form.notes.label.text }}</label>
+        {{ form.notes(class="form-control", rows="2", placeholder="Customer info, reason details, or dispatch note...") }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Dynamic Line Items -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Issued Line Items</h2>
+      <button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">
+        <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Another Line
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table" id="itemsTable">
+        <thead>
+          <tr>
+            <th style="width: 40%;">Product (Search SKU or Name)</th>
+            <th style="width: 15%;">Available Stock</th>
+            <th style="width: 15%;">Quantity to Issue</th>
+            <th style="width: 15%;">Unit Selling Price ({{ currency }})</th>
+            <th style="width: 10%;">Subtotal</th>
+            <th style="width: 5%; text-align: center;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody">
+        </tbody>
+        <tfoot>
+          <tr style="font-weight: 700; background-color: #f8fafc;">
+            <td colspan="4" style="text-align: right;">Total Outgoing Value:</td>
+            <td id="grandTotal" style="color: var(--color-danger); font-size: 1.1rem;">{{ currency }} 0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="card-footer" style="display: flex; justify-content: flex-end; gap: 1rem;">
+      <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-danger" id="submitBtn">
+        Confirm & Issue Stock
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const itemsBody = document.getElementById("itemsBody");
+  const addRowBtn = document.getElementById("addRowBtn");
+  const grandTotalEl = document.getElementById("grandTotal");
+
+  function recalculateTotals() {
+    let grandTotal = 0;
+    itemsBody.querySelectorAll("tr").forEach(row => {
+      const qtyInput = row.querySelector(".item-qty");
+      const priceInput = row.querySelector(".item-price");
+      const subtotalEl = row.querySelector(".item-subtotal");
+      const maxStock = parseInt(qtyInput.getAttribute("max") || 0);
+
+      const qty = parseFloat(qtyInput.value) || 0;
+      const price = parseFloat(priceInput.value) || 0;
+
+      if (maxStock > 0 && qty > maxStock) {
+        qtyInput.style.borderColor = "var(--color-danger)";
+      } else {
+        qtyInput.style.borderColor = "";
+      }
+
+      const subtotal = qty * price;
+      subtotalEl.textContent = `{{ currency }} ${subtotal.toFixed(2)}`;
+      grandTotal += subtotal;
+    });
+    grandTotalEl.textContent = `{{ currency }} ${grandTotal.toFixed(2)}`;
+  }
+
+  function addRow() {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>
+        <input type="text" class="form-control item-search" placeholder="Type SKU or Name..." autocomplete="off">
+        <input type="hidden" name="product_id[]" class="item-id" required>
+        <div class="search-results" style="position: absolute; z-index: 100; background: white; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 180px; overflow-y: auto; display: none; width: 340px;"></div>
+      </td>
+      <td>
+        <span class="stock-display" style="font-weight: 600; color: #64748b;">—</span>
+      </td>
+      <td>
+        <input type="number" name="quantity[]" class="form-control item-qty" min="1" value="1" required>
+      </td>
+      <td>
+        <input type="number" name="unit_price[]" class="form-control item-price" min="0" step="0.01" value="0.00" required>
+      </td>
+      <td class="item-subtotal" style="font-weight: 600;">
+        {{ currency }} 0.00
+      </td>
+      <td style="text-align: center;">
+        <button type="button" class="btn btn-sm btn-danger remove-row-btn" title="Remove row">&times;</button>
+      </td>
+    `;
+
+    itemsBody.appendChild(row);
+
+    const searchInput = row.querySelector(".item-search");
+    const idInput = row.querySelector(".item-id");
+    const stockDisplay = row.querySelector(".stock-display");
+    const qtyInput = row.querySelector(".item-qty");
+    const priceInput = row.querySelector(".item-price");
+    const resultsDiv = row.querySelector(".search-results");
+    const removeBtn = row.querySelector(".remove-row-btn");
+
+    let timeout = null;
+    searchInput.addEventListener("input", () => {
+      clearTimeout(timeout);
+      const query = searchInput.value.trim();
+      if (query.length < 2) {
+        resultsDiv.style.display = "none";
+        return;
+      }
+      timeout = setTimeout(() => {
+        fetch(`/products/api/search?q=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => {
+            resultsDiv.innerHTML = "";
+            if (data.length === 0) {
+              resultsDiv.innerHTML = '<div style="padding: 8px; color: #64748b; font-size: 0.85rem;">No matching products</div>';
+            } else {
+              data.forEach(item => {
+                const itemEl = document.createElement("div");
+                itemEl.style.padding = "8px 12px";
+                itemEl.style.cursor = "pointer";
+                itemEl.style.borderBottom = "1px solid #f1f5f9";
+                itemEl.innerHTML = `<strong>${item.name}</strong> <span style="font-size: 0.8rem; color: #64748b;">[${item.sku}]</span><div style="font-size: 0.75rem; color: ${item.current_stock > 0 ? '#10b981' : '#ef4444'};">Available Stock: ${item.current_stock} ${item.unit_of_measure} | Price: {{ currency }} ${item.unit_price.toFixed(2)}</div>`;
+                itemEl.addEventListener("click", () => {
+                  searchInput.value = `${item.sku} - ${item.name}`;
+                  idInput.value = item.id;
+                  stockDisplay.textContent = `${item.current_stock} ${item.unit_of_measure}`;
+                  qtyInput.setAttribute("max", item.current_stock);
+                  priceInput.value = item.unit_price.toFixed(2);
+                  resultsDiv.style.display = "none";
+                  recalculateTotals();
+                });
+                resultsDiv.appendChild(itemEl);
+              });
+            }
+            resultsDiv.style.display = "block";
+          });
+      }, 250);
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!row.contains(e.target)) {
+        resultsDiv.style.display = "none";
+      }
+    });
+
+    qtyInput.addEventListener("input", recalculateTotals);
+    priceInput.addEventListener("input", recalculateTotals);
+
+    removeBtn.addEventListener("click", () => {
+      if (itemsBody.querySelectorAll("tr").length > 1) {
+        row.remove();
+        recalculateTotals();
+      } else {
+        alert("At least one line item is required.");
+      }
+    });
+
+    searchInput.focus();
+  }
+
+  addRowBtn.addEventListener("click", addRow);
+  addRow();
+
+  document.getElementById("stockOutForm").addEventListener("submit", (e) => {
+    const ids = Array.from(itemsBody.querySelectorAll(".item-id")).filter(el => el.value);
+    if (ids.length === 0) {
+      e.preventDefault();
+      alert("Please select at least one product before submitting.");
+    }
+  });
+});
+</script>
+{% endblock %}

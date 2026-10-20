@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Valuation Report{% endblock %}
+{% block page_title %}Inventory Valuation Summary{% endblock %}
+
+{% block actions %}
+  <a href="{{ url_for('reports.export_valuation') }}" class="btn btn-primary btn-sm">
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Export CSV
+  </a>
+  <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm">All Reports</a>
+{% endblock %}
+
+{% block content %}
+<!-- Financial KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper" style="background-color: var(--color-primary-light); color: var(--color-primary);">
+      <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+      </svg>
+    </div>
+    <div>
+      <div class="kpi-value">{{ report.total_cost|currency(report.currency) }}</div>
+      <div class="kpi-label">Total Cost Basis</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper" style="background-color: var(--color-success-light); color: var(--color-success);">
+      <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+        <polyline points="17 6 23 6 23 12"></polyline>
+      </svg>
+    </div>
+    <div>
+      <div class="kpi-value">{{ report.total_retail|currency(report.currency) }}</div>
+      <div class="kpi-label">Retail Potential</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrapper" style="background-color: #f3e8ff; color: #7e22ce;">
+      <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+    </div>
+    <div>
+      <div class="kpi-value">{{ report.potential_profit|currency(report.currency) }}</div>
+      <div class="kpi-label">Projected Gross Margin</div>
+    </div>
+  </div>
+</div>
+
+<!-- Item-by-Item Valuation Table -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Catalog Valuation Breakdown</h2>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product Name</th>
+          <th>Category</th>
+          <th>On Hand</th>
+          <th>Unit Cost</th>
+          <th>Unit Price</th>
+          <th>Total Cost Value</th>
+          <th>Total Retail Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in report.products %}
+          <tr>
+            <td><code>{{ p.sku }}</code></td>
+            <td><strong>{{ p.name }}</strong></td>
+            <td>{{ p.category.name if p.category else '—' }}</td>
+            <td>{{ p.current_stock }} {{ p.unit_of_measure }}</td>
+            <td>{{ p.cost_price|currency(report.currency) }}</td>
+            <td>{{ p.unit_price|currency(report.currency) }}</td>
+            <td><strong>{{ p.total_cost_valuation|currency(report.currency) }}</strong></td>
+            <td><strong>{{ p.total_retail_valuation|currency(report.currency) }}</strong></td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; color: var(--color-text-muted); padding: 3rem;">No active products to evaluate.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

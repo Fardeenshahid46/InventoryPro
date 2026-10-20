@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+{% block page_title %}Staff & Access Management{% endblock %}
+
+{% block actions %}
+  <a href="{{ url_for('users.create') }}" class="btn btn-primary btn-sm">
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Create User
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email Address</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Last Login</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>
+              <div style="font-weight: 600;">{{ u.full_name }}</div>
+              <div style="font-size: 0.8rem; color: var(--color-text-muted);">@{{ u.username }}</div>
+            </td>
+            <td>{{ u.email }}</td>
+            <td>
+              {% if u.role == 'ADMIN' %}
+                <span class="badge badge-danger">Administrator</span>
+              {% elif u.role == 'MANAGER' %}
+                <span class="badge badge-info">Manager</span>
+              {% else %}
+                <span class="badge badge-secondary">Staff</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}
+                <span class="badge badge-success">Active</span>
+              {% else %}
+                <span class="badge badge-danger">Deactivated</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 0.85rem; color: var(--color-text-muted);">
+              {{ u.last_login_at|datetime if u.last_login_at else 'Never' }}
+            </td>
+            <td style="text-align: right;">
+              <div style="display: inline-flex; gap: 0.4rem;">
+                <a href="{{ url_for('users.edit', id=u.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                <a href="{{ url_for('users.reset_password', id=u.id) }}" class="btn btn-sm btn-secondary">Reset Pwd</a>
+                {% if u.id != current_user.id %}
+                  <form method="POST" action="{{ url_for('users.toggle_status', id=u.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-success{% endif %}" onclick="return confirm('Are you sure you want to change this user status?')">
+                      {{ 'Deactivate' if u.is_active else 'Activate' }}
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings{% endblock %}
+{% block page_title %}Application Settings{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 650px; margin: 0 auto;">
+  <div class="card-header">
+    <h2 class="card-title">General Application Configuration</h2>
+  </div>
+  <div class="card-body">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.company_name.id }}">{{ form.company_name.label.text }} *</label>
+        {{ form.company_name(class="form-control") }}
+        {% for error in form.company_name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.default_currency.id }}">{{ form.default_currency.label.text }} *</label>
+          {{ form.default_currency(class="form-control", placeholder="PKR") }}
+          <small class="form-text">Used for all monetary valuations and prices.</small>
+          {% for error in form.default_currency.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.low_stock_threshold.id }}">{{ form.low_stock_threshold.label.text }} *</label>
+          {{ form.low_stock_threshold(class="form-control") }}
+          <small class="form-text">Default threshold for newly created items.</small>
+          {% for error in form.low_stock_threshold.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.items_per_page.id }}">{{ form.items_per_page.label.text }} *</label>
+        {{ form.items_per_page(class="form-control") }}
+        <small class="form-text">Pagination size for products and ledger tables.</small>
+        {% for error in form.items_per_page.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      <div style="margin-top: 2rem;">
+        {{ form.submit(class="btn btn-primary") }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

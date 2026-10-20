@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Products Catalog{% endblock %}
+{% block page_title %}Products Catalog{% endblock %}
+
+{% block actions %}
+  {% if current_user.role in ['ADMIN', 'MANAGER'] %}
+    <a href="{{ url_for('products.create') }}" class="btn btn-primary btn-sm">
+      <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Add Product
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Search & Filter Controls -->
+<div class="card" style="margin-bottom: var(--space-md); padding: 1rem 1.5rem;">
+  <form method="GET" action="{{ url_for('products.index') }}" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+    <div style="flex: 1; min-width: 220px;">
+      <input type="text" name="q" value="{{ search }}" class="form-control" placeholder="Search by SKU, name, or barcode...">
+    </div>
+    <div style="min-width: 180px;">
+      <select name="category_id" class="form-control">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary">Filter</button>
+    {% if search or selected_category %}
+      <a href="{{ url_for('products.index') }}" class="btn btn-sm btn-secondary" style="color: var(--color-danger);">Reset</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Products Table -->
+<div class="card">
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Stock on Hand</th>
+          <th>Cost Price</th>
+          <th>Selling Price</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pagination.items %}
+          <tr>
+            <td><code>{{ p.sku }}</code></td>
+            <td>
+              <a href="{{ url_for('products.detail', id=p.id) }}" style="color: var(--color-primary); font-weight: 600; text-decoration: none;">
+                {{ p.name }}
+              </a>
+            </td>
+            <td>{{ p.category.name if p.category else '—' }}</td>
+            <td>
+              {% if p.current_stock <= 0 %}
+                <span class="badge badge-danger">Out of stock (0)</span>
+              {% elif p.current_stock <= p.reorder_level %}
+                <span class="badge badge-warning">Low: {{ p.current_stock }} {{ p.unit_of_measure }}</span>
+              {% else %}
+                <span class="badge badge-success">{{ p.current_stock }} {{ p.unit_of_measure }}</span>
+              {% endif %}
+            </td>
+            <td>{{ p.cost_price|currency(currency) }}</td>
+            <td>{{ p.unit_price|currency(currency) }}</td>
+            <td>
+              {% if p.is_active %}
+                <span class="badge badge-success">Active</span>
+              {% else %}
+                <span class="badge badge-secondary">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              <a href="{{ url_for('products.detail', id=p.id) }}" class="btn btn-sm btn-secondary" title="View details">View</a>
+              {% if current_user.role in ['ADMIN', 'MANAGER'] %}
+                <a href="{{ url_for('products.edit', id=p.id) }}" class="btn btn-sm btn-secondary" title="Edit product">Edit</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; color: var(--color-text-muted); padding: 3rem;">
+              No products found matching your filter criteria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  {% if pagination.pages > 1 %}
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+        Showing page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} items total)
+      </span>
+      <div style="display: flex; gap: 0.5rem;">
+        {% if pagination.has_prev %}
+          <a href="{{ url_for('products.index', page=pagination.prev_num, q=search, category_id=selected_category) }}" class="btn btn-sm btn-secondary">&laquo; Previous</a>
+        {% endif %}
+        {% if pagination.has_next %}
+          <a href="{{ url_for('products.index', page=pagination.next_num, q=search, category_id=selected_category) }}" class="btn btn-sm btn-secondary">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

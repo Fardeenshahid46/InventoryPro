@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}{{ product.name }}{% endblock %}
+
+{% block actions %}
+  {% if current_user.role in ['ADMIN', 'MANAGER'] %}
+    <a href="{{ url_for('products.edit', id=product.id) }}" class="btn btn-secondary btn-sm">Edit Details</a>
+    <a href="{{ url_for('inventory.adjust') }}?product_id={{ product.id }}" class="btn btn-primary btn-sm">Adjust Count</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-xl); margin-bottom: var(--space-xl);">
+  <!-- Primary Product Information -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h2 class="card-title">Product Details</h2>
+      <span class="badge {% if product.is_active %}badge-success{% else %}badge-secondary{% endif %}">
+        {{ 'Active' if product.is_active else 'Inactive' }}
+      </span>
+    </div>
+    <div class="card-body">
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+        <div>
+          <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted);">SKU Identifier</span>
+          <div style="font-size: 1.1rem; font-weight: 700; margin-top: 2px;"><code>{{ product.sku }}</code></div>
+        </div>
+        <div>
+          <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted);">Barcode (UPC/EAN)</span>
+          <div style="font-size: 1.1rem; font-weight: 600; margin-top: 2px;">{{ product.barcode or 'None Assigned' }}</div>
+        </div>
+        <div>
+          <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted);">Category</span>
+          <div style="font-size: 1rem; font-weight: 600; margin-top: 2px;">{{ product.category.name }}</div>
+        </div>
+        <div>
+          <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted);">Primary Supplier</span>
+          <div style="font-size: 1rem; font-weight: 600; margin-top: 2px;">{{ product.supplier.name if product.supplier else 'Unassigned' }}</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; border-top: 1px solid var(--color-border); padding-top: 1.5rem;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted);">Description</span>
+        <p style="margin-top: 0.5rem; color: #334155;">{{ product.description or 'No extra description provided.' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock & Financial Metrics -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <h2 class="card-title">Inventory & Pricing</h2>
+    </div>
+    <div class="card-body">
+      <div style="margin-bottom: 1.5rem;">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted);">On-Hand Stock</span>
+        <div style="font-size: 2rem; font-weight: 800; color: {% if product.is_out_of_stock %}var(--color-danger){% elif product.is_low_stock %}var(--color-warning){% else %}var(--color-success){% endif %};">
+          {{ product.current_stock }} <span style="font-size: 1rem; font-weight: 500; color: var(--color-text-muted);">{{ product.unit_of_measure }}</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 4px;">
+          Reorder Alert Threshold: <strong>{{ product.reorder_level }} {{ product.unit_of_measure }}</strong>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid var(--color-border); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--color-text-muted);">Unit Cost:</span>
+          <strong>{{ product.cost_price|currency(currency) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--color-text-muted);">Selling Price:</span>
+          <strong>{{ product.unit_price|currency(currency) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--color-text-muted);">Unit Margin:</span>
+          <strong style="color: var(--color-success);">{{ product.profit_margin|currency(currency) }}</strong>
+        </div>
+        <div style="border-top: 1px dashed var(--color-border); padding-top: 0.75rem; display: flex; justify-content: space-between;">
+          <span style="color: var(--color-text-muted);">Total Value (Cost):</span>
+          <strong>{{ product.total_cost_valuation|currency(currency) }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Product Movement History -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Recent Stock Movements for this Item</h2>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Type</th>
+          <th>Delta</th>
+          <th>Balance (Before &rarr; After)</th>
+          <th>Reason / Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in recent_movements %}
+          <tr>
+            <td>{{ m.created_at|datetime }}</td>
+            <td>
+              {% if m.movement_type == 'IN' %}
+                <span class="badge badge-success">+ In</span>
+              {% elif m.movement_type == 'OUT' %}
+                <span class="badge badge-danger">- Out</span>
+              {% else %}
+                <span class="badge badge-warning">Adjustment</span>
+              {% endif %}
+            </td>
+            <td>
+              <strong style="color: {% if m.quantity_change > 0 %}var(--color-success){% else %}var(--color-danger){% endif %};">
+                {{ "%+d"|format(m.quantity_change) }}
+              </strong>
+            </td>
+            <td>{{ m.stock_before }} &rarr; <strong>{{ m.stock_after }}</strong></td>
+            <td>{{ m.reason or '—' }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">
+              No movement events recorded for this product yet.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

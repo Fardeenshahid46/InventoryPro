@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Low Stock Alerts{% endblock %}
+{% block page_title %}Low Stock & Depleted Inventory Alerts{% endblock %}
+
+{% block actions %}
+  <a href="{{ url_for('inventory.stock_in') }}" class="btn btn-primary btn-sm">Receive Stock</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Items at or below Reorder Threshold</h2>
+    <span class="badge badge-warning">{{ pagination.total }} items require attention</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product Name</th>
+          <th>Category</th>
+          <th>Current On-Hand</th>
+          <th>Reorder Threshold</th>
+          <th>Status</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pagination.items %}
+          <tr>
+            <td><code>{{ p.sku }}</code></td>
+            <td>
+              <a href="{{ url_for('products.detail', id=p.id) }}" style="font-weight: 600; text-decoration: none; color: var(--color-primary);">
+                {{ p.name }}
+              </a>
+            </td>
+            <td>{{ p.category.name if p.category else '—' }}</td>
+            <td>
+              <strong style="color: {% if p.current_stock == 0 %}var(--color-danger){% else %}var(--color-warning){% endif %}; font-size: 1.05rem;">
+                {{ p.current_stock }} {{ p.unit_of_measure }}
+              </strong>
+            </td>
+            <td>{{ p.reorder_level }} {{ p.unit_of_measure }}</td>
+            <td>
+              {% if p.current_stock == 0 %}
+                <span class="badge badge-danger">Out of Stock</span>
+              {% else %}
+                <span class="badge badge-warning">Low Stock</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right;">
+              <a href="{{ url_for('inventory.stock_in') }}" class="btn btn-sm btn-primary">Restock</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--color-success); padding: 3rem;">
+              No low-stock alerts. All products are currently stocked above their reorder thresholds!
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pagination.pages > 1 %}
+    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 0.85rem; color: var(--color-text-muted);">
+        Page {{ pagination.page }} of {{ pagination.pages }}
+      </span>
+      <div style="display: flex; gap: 0.5rem;">
+        {% if pagination.has_prev %}
+          <a href="{{ url_for('inventory.alerts', page=pagination.prev_num) }}" class="btn btn-sm btn-secondary">&laquo; Previous</a>
+        {% endif %}
+        {% if pagination.has_next %}
+          <a href="{{ url_for('inventory.alerts', page=pagination.next_num) }}" class="btn btn-sm btn-secondary">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

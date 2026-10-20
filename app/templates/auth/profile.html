@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile{% endblock %}
+{% block page_title %}Account Profile{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: var(--space-xl);">
+  <!-- Profile Information Form -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Personal Information</h2>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('auth.profile') }}">
+        {{ profile_form.hidden_tag() }}
+        
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-control" value="{{ current_user.username }}" disabled style="background-color: #f1f5f9; cursor: not-allowed;">
+          <small class="form-text">Usernames are permanently assigned and cannot be changed.</small>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="{{ profile_form.first_name.id }}">{{ profile_form.first_name.label.text }}</label>
+            {{ profile_form.first_name(class="form-control") }}
+            {% for error in profile_form.first_name.errors %}
+              <div class="form-error">{{ error }}</div>
+            {% endfor %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ profile_form.last_name.id }}">{{ profile_form.last_name.label.text }}</label>
+            {{ profile_form.last_name(class="form-control") }}
+            {% for error in profile_form.last_name.errors %}
+              <div class="form-error">{{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ profile_form.email.id }}">{{ profile_form.email.label.text }}</label>
+          {{ profile_form.email(class="form-control") }}
+          {% for error in profile_form.email.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Assigned Role</label>
+          <div><span class="badge badge-info">{{ current_user.role }}</span></div>
+        </div>
+
+        <button type="submit" name="submit_profile" class="btn btn-primary" style="margin-top: 1rem;">
+          Save Profile Details
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Change Password Form -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Security & Password</h2>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('auth.profile') }}">
+        {{ password_form.hidden_tag() }}
+
+        <div class="form-group">
+          <label class="form-label" for="{{ password_form.current_password.id }}">{{ password_form.current_password.label.text }}</label>
+          {{ password_form.current_password(class="form-control", placeholder="Current Password") }}
+          {% for error in password_form.current_password.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ password_form.new_password.id }}">{{ password_form.new_password.label.text }}</label>
+          {{ password_form.new_password(class="form-control", placeholder="Minimum 8 characters") }}
+          {% for error in password_form.new_password.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ password_form.confirm_password.id }}">{{ password_form.confirm_password.label.text }}</label>
+          {{ password_form.confirm_password(class="form-control", placeholder="Confirm New Password") }}
+          {% for error in password_form.confirm_password.errors %}
+            <div class="form-error">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" name="submit_password" class="btn btn-secondary" style="margin-top: 1rem;">
+          Update Password
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

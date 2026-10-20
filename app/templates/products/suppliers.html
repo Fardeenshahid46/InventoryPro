@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Suppliers Directory{% endblock %}
+{% block page_title %}Suppliers & Vendors{% endblock %}
+
+{% block actions %}
+  <a href="{{ url_for('products.index') }}" class="btn btn-secondary btn-sm">Back to Catalog</a>
+{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-xl);">
+  <!-- New Supplier Form -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Register Supplier</h2>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.name.id }}">{{ form.name.label.text }} *</label>
+          {{ form.name(class="form-control", placeholder="e.g. Apex Industrial Supplies") }}
+          {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.contact_name.id }}">{{ form.contact_name.label.text }}</label>
+          {{ form.contact_name(class="form-control", placeholder="Representative Name") }}
+          {% for error in form.contact_name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.email.id }}">{{ form.email.label.text }}</label>
+          {{ form.email(class="form-control", placeholder="supplier@example.com") }}
+          {% for error in form.email.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.phone.id }}">{{ form.phone.label.text }}</label>
+          {{ form.phone(class="form-control", placeholder="+92 300 1234567") }}
+          {% for error in form.phone.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="{{ form.address.id }}">{{ form.address.label.text }}</label>
+          {{ form.address(class="form-control", rows="2", placeholder="Physical warehouse / street address") }}
+          {% for error in form.address.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        {{ form.submit(class="btn btn-primary", style="width: 100%;") }}
+      </form>
+    </div>
+  </div>
+
+  <!-- Suppliers Directory Table -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Registered Suppliers</h2>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Contact</th>
+            <th>Phone & Email</th>
+            <th>Products</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in suppliers %}
+            <tr>
+              <td>
+                <strong>{{ s.name }}</strong>
+                {% if s.address %}<div style="font-size: 0.8rem; color: var(--color-text-muted);">{{ s.address }}</div>{% endif %}
+              </td>
+              <td>{{ s.contact_name or '—' }}</td>
+              <td>
+                {% if s.phone %}<div>{{ s.phone }}</div>{% endif %}
+                {% if s.email %}<div style="font-size: 0.82rem; color: var(--color-text-muted);">{{ s.email }}</div>{% endif %}
+                {% if not s.phone and not s.email %}—{% endif %}
+              </td>
+              <td>
+                <span class="badge badge-info">{{ s.products.count() }} SKUs</span>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">No suppliers registered yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

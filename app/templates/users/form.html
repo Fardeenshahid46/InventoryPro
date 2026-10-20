@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit User' if is_edit else 'New User Account' }}{% endblock %}
+{% block page_title %}{{ 'Edit User: ' ~ user.username if is_edit else 'Create User Account' }}{% endblock %}
+
+{% block actions %}
+  <a href="{{ url_for('users.index') }}" class="btn btn-secondary btn-sm">Back to Users</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 650px; margin: 0 auto;">
+  <div class="card-body">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+
+      {% if not is_edit %}
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.username.id }}">{{ form.username.label.text }} *</label>
+            {{ form.username(class="form-control", placeholder="john_doe") }}
+            {% for error in form.username.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.email.id }}">{{ form.email.label.text }} *</label>
+            {{ form.email(class="form-control", placeholder="john@example.com") }}
+            {% for error in form.email.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.first_name.id }}">{{ form.first_name.label.text }} *</label>
+          {{ form.first_name(class="form-control") }}
+          {% for error in form.first_name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.last_name.id }}">{{ form.last_name.label.text }} *</label>
+          {{ form.last_name(class="form-control") }}
+          {% for error in form.last_name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.role.id }}">{{ form.role.label.text }} *</label>
+        {{ form.role(class="form-control") }}
+        {% for error in form.role.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+
+      {% if is_edit %}
+        <div class="form-group" style="margin-top: 1rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;">
+            {{ form.is_active() }} Account Active and Allowed to Login
+          </label>
+        </div>
+      {% else %}
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.password.id }}">{{ form.password.label.text }} *</label>
+            {{ form.password(class="form-control", placeholder="Minimum 8 characters") }}
+            {% for error in form.password.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.confirm_password.id }}">{{ form.confirm_password.label.text }} *</label>
+            {{ form.confirm_password(class="form-control", placeholder="Confirm Password") }}
+            {% for error in form.confirm_password.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+        {{ form.submit(class="btn btn-primary") }}
+        <a href="{{ url_for('users.index') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
