@@ -101,18 +101,7 @@ flask --app run.py seed-sample
 python run.py
 ```
 Open your browser and navigate to: `http://127.0.0.1:5000`
-
----
-
-## Default Administrator Credentials
-
-- **Username**: `admin`
-- **Password**: `Admin@12345`
-- **Role**: `ADMIN`
-
-*(It is strongly recommended to change the administrative password immediately after first login via Account Profile).*
-
----
+--
 
 ## Running the Automated Test Suite
 
