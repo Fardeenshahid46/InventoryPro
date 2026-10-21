@@ -59,7 +59,7 @@ class AuthService:
     @staticmethod
     def update_user(user_id: int, first_name: str, last_name: str, role: str, is_active: bool) -> User:
         """Update user profile and permissions."""
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             raise ResourceNotFoundError(f"User with ID {user_id} not found.")
 
@@ -82,7 +82,7 @@ class AuthService:
     @staticmethod
     def admin_reset_password(user_id: int, new_password: str) -> User:
         """Admin override to reset a user's password."""
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             raise ResourceNotFoundError(f"User with ID {user_id} not found.")
         user.set_password(new_password)

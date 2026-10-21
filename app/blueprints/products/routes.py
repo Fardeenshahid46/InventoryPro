@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required
 from app.blueprints.products.forms import ProductForm, CategoryForm, SupplierForm
+from app.models.inventory import StockMovement
 from app.services.product_service import ProductService
 from app.services.setting_service import SettingService
 from app.utils.decorators import role_required, manager_required, admin_required
@@ -86,7 +87,12 @@ def detail(id):
         product = ProductService.get_product_by_id(id)
         currency = SettingService.get("default_currency", "PKR")
         # Get recent 10 movements for this product
-        recent_movements = product.movements.order_by(product.movements.expression.model.created_at.desc()).limit(10).all()
+        recent_movements = (
+            StockMovement.query.filter_by(product_id=product.id)
+            .order_by(StockMovement.created_at.desc())
+            .limit(10)
+            .all()
+        )
         return render_template(
             "products/detail.html",
             product=product,

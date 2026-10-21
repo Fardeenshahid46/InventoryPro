@@ -36,7 +36,7 @@ class ProductService:
     @staticmethod
     def get_product_by_id(product_id: int) -> Product:
         """Fetch a single product by ID or raise ResourceNotFoundError."""
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)
         if not product:
             raise ResourceNotFoundError(f"Product with ID {product_id} was not found.")
         return product
@@ -67,7 +67,7 @@ class ProductService:
                 raise DuplicateResourceError(f"Barcode '{barcode}' is already assigned.")
 
         # Ensure valid category
-        category = Category.query.get(category_id)
+        category = db.session.get(Category, category_id)
         if not category:
             raise ResourceNotFoundError(f"Category with ID {category_id} does not exist.")
 
@@ -154,7 +154,7 @@ class ProductService:
 
     @staticmethod
     def update_category(category_id: int, name: str, description: str = None) -> Category:
-        category = Category.query.get(category_id)
+        category = db.session.get(Category, category_id)
         if not category:
             raise ResourceNotFoundError("Category not found.")
         clean_name = name.strip()
@@ -188,7 +188,7 @@ class ProductService:
 
     @staticmethod
     def update_supplier(supplier_id: int, name: str, contact_name=None, email=None, phone=None, address=None) -> Supplier:
-        supplier = Supplier.query.get(supplier_id)
+        supplier = db.session.get(Supplier, supplier_id)
         if not supplier:
             raise ResourceNotFoundError("Supplier not found.")
         supplier.name = name.strip()
