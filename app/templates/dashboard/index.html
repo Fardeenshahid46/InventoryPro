@@ -30,7 +30,7 @@
       </svg>
     </div>
     <div>
-      <div class="kpi-value">{{ summary.total_products }}</div>
+      <div class="kpi-value">{{ summary.total_products|default(0) }}</div>
       <div class="kpi-label">Active SKUs</div>
     </div>
   </div>
@@ -44,7 +44,7 @@
       </svg>
     </div>
     <div>
-      <div class="kpi-value">{{ summary.total_valuation_cost|currency(summary.currency) }}</div>
+      <div class="kpi-value">{{ (summary.total_valuation_cost|default(0))|currency(summary.currency|default('PKR')) }}</div>
       <div class="kpi-label">Valuation (At Cost)</div>
     </div>
   </div>
@@ -59,7 +59,7 @@
       </svg>
     </div>
     <div>
-      <div class="kpi-value">{{ summary.low_stock_count }}</div>
+      <div class="kpi-value">{{ summary.low_stock_count|default(0) }}</div>
       <div class="kpi-label">
         <a href="{{ url_for('inventory.alerts') }}" style="color: inherit; text-decoration: underline;">Low Stock Alerts</a>
       </div>
@@ -74,7 +74,7 @@
       </svg>
     </div>
     <div>
-      <div class="kpi-value">{{ summary.today_transactions }}</div>
+      <div class="kpi-value">{{ summary.today_transactions|default(0) }}</div>
       <div class="kpi-label">Today's Transactions</div>
     </div>
   </div>
@@ -122,7 +122,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for txn in summary.recent_transactions %}
+          {% for txn in summary.recent_transactions|default([]) %}
             <tr>
               <td><code>{{ txn.transaction_code }}</code></td>
               <td>
@@ -164,7 +164,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for p in summary.critical_low_stock %}
+          {% for p in summary.critical_low_stock|default([]) %}
             <tr>
               <td><code>{{ p.sku }}</code></td>
               <td><strong>{{ p.name }}</strong></td>
@@ -193,61 +193,93 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  // Graceful fallback if Chart.js is not loaded (e.g., offline or CDN blocked)
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js failed to load or is blocked. Fallback activated.");
+    ["movementChart", "categoryChart"].forEach(function (id) {
+      const canvas = document.getElementById(id);
+      if (canvas && canvas.parentElement) {
+        canvas.parentElement.innerHTML = '<div style="color: var(--color-text-muted); font-size: 0.9rem; text-align: center; padding: 2rem;">Chart display unavailable (offline or CDN blocked).</div>';
+      }
+    });
+    return;
+  }
+
   // 1. Movement Activity Chart
-  const ctxMovement = document.getElementById("movementChart").getContext("2d");
-  new Chart(ctxMovement, {
-    type: "bar",
-    data: {
-      labels: ["Receipts (Stock In)", "Issues (Stock Out)"],
-      datasets: [{
-        label: "Events (Last 7 Days)",
-        data: [{{ summary.in_movements_7d }}, {{ summary.out_movements_7d }}],
-        backgroundColor: ["#10b981", "#ef4444"],
-        borderRadius: 6,
-        maxBarThickness: 50,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } },
+  const movementCanvas = document.getElementById("movementChart");
+  if (movementCanvas) {
+    const ctxMovement = movementCanvas.getContext("2d");
+    new Chart(ctxMovement, {
+      type: "bar",
+      data: {
+        labels: ["Receipts (Stock In)", "Issues (Stock Out)"],
+        datasets: [{
+          label: "Events (Last 7 Days)",
+          data: [{{ summary.in_movements_7d|default(0) }}, {{ summary.out_movements_7d|default(0) }}],
+          backgroundColor: ["#10b981", "#ef4444"],
+          borderRadius: 6,
+          maxBarThickness: 50,
+        }],
       },
-    },
-  });
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+        },
+      },
+    });
+  }
 
   // 2. Fetch Category Distribution for Doughnut Chart
-  fetch("/api/dashboard/chart-data")
-    .then((r) => r.json())
-    .then((data) => {
-      const ctxCategory = document.getElementById("categoryChart").getContext("2d");
-      const defaultLabels = data.labels.length > 0 ? data.labels : ["No categories"];
-      const defaultCounts = data.counts.length > 0 ? data.counts : [0];
+  const categoryCanvas = document.getElementById("categoryChart");
+  if (categoryCanvas) {
+    fetch("{{ url_for('dashboard.chart_data') }}")
+      .then(function (r) {
+        if (!r.ok) {
+          throw new Error("HTTP " + r.status + " " + r.statusText);
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        const ctxCategory = categoryCanvas.getContext("2d");
+        const defaultLabels = (data && Array.isArray(data.labels) && data.labels.length > 0)
+          ? data.labels
+          : ["No categories"];
+        const defaultCounts = (data && Array.isArray(data.counts) && data.counts.length > 0)
+          ? data.counts
+          : [0];
 
-      new Chart(ctxCategory, {
-        type: "doughnut",
-        data: {
-          labels: defaultLabels,
-          datasets: [{
-            data: defaultCounts,
-            backgroundColor: [
-              "#2563eb", "#10b981", "#f59e0b", "#8b5cf6",
-              "#ec4899", "#06b6d4", "#64748b"
-            ],
-            borderWidth: 2,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: "right" },
+        new Chart(ctxCategory, {
+          type: "doughnut",
+          data: {
+            labels: defaultLabels,
+            datasets: [{
+              data: defaultCounts,
+              backgroundColor: [
+                "#2563eb", "#10b981", "#f59e0b", "#8b5cf6",
+                "#ec4899", "#06b6d4", "#64748b"
+              ],
+              borderWidth: 2,
+            }],
           },
-        },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "right" },
+            },
+          },
+        });
+      })
+      .catch(function (err) {
+        console.error("Category chart load error:", err);
+        if (categoryCanvas.parentElement) {
+          categoryCanvas.parentElement.innerHTML = '<div style="color: var(--color-text-muted); font-size: 0.85rem; text-align: center;">Unable to load category chart data.</div>';
+        }
       });
-    })
-    .catch((err) => console.error("Chart load error:", err));
+  }
 });
 </script>
 {% endblock %}
